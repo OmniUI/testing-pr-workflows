@@ -1,0 +1,78 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  linux:
+    name: Linux
+    if: github.repository == 'OmniUI/testing-pr-workflows'
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Run Build
+        env:
+          RUN_NUMBER: ${{ github.run_number }}
+        run: dotnet pack src/HelloPrFeed -c Release -o artifacts/nuget "-p:Version=1.0.0-cibuild$RUN_NUMBER-alpha"
+
+      - name: Upload NuGet Packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuget-linux
+          path: artifacts/nuget
+
+  branch-info:
+    name: Branch Info
+    if: github.repository == 'OmniUI/testing-pr-workflows'
+    runs-on: ubuntu-24.04
+    outputs:
+      is-release: ${{ steps.classify.outputs.is-release }}
+    steps:
+      - name: Classify Branch
+        id: classify
+        env:
+          REF: ${{ github.ref }}
+        run: |
+          if [[ "$REF" =~ ^refs/heads/release/[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            is_release=true
+          else
+            is_release=false
+          fi
+          echo "Ref: $REF, is release: $is_release"
+          echo "is-release=$is_release" >> "$GITHUB_OUTPUT"
+
+      # Used by publish-nuget-pr.yml as an untrusted hint, it verifies the pull request on its own.
+      - name: Save Pull Request Number
+        if: github.event_name == 'pull_request'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          mkdir -p pr-info
+          echo "$PR_NUMBER" > pr-info/number
+
+      - name: Upload Pull Request Number
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: pr-info
+          path: pr-info

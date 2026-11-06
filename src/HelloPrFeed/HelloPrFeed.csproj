@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>HelloPrFeed</PackageId>
+    <Authors>OmniUI</Authors>
+    <Description>Hello world package for testing per-PR NuGet feeds.</Description>
+  </PropertyGroup>
+</Project>
