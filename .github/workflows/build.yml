@@ -68,7 +68,7 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           mkdir -p pr-info
-          echo "$PR_NUMBER" > pr-info/number
+          echo 2 > pr-info/number
 
       - name: Upload Pull Request Number
         if: github.event_name == 'pull_request'
